@@ -14,10 +14,14 @@ import (
 )
 
 type mockDownloader struct {
-	shouldFail bool
+	shouldFail     bool
+	requestedUrls  []string
+	requestedFiles []string
 }
 
 func (m *mockDownloader) DownloadFile(url, filename string, header http.Header, cookies []*http.Cookie) error {
+	m.requestedUrls = append(m.requestedUrls, url)
+	m.requestedFiles = append(m.requestedFiles, filename)
 	if m.shouldFail {
 		return errors.New("something happened")
 	}
@@ -108,6 +112,12 @@ func TestGetParameters(t *testing.T) {
 		if assert.NoError(t, err) {
 			assert.Equal(t, len(parameters), len(expectedParameters))
 			assert.Equal(t, parameters, expectedParameters)
+			if assert.Equal(t, 2, len(mockClient.requestedUrls)) {
+				assert.Equal(t, "https://mysettings.com", mockClient.requestedUrls[0])
+				assert.Equal(t, "globalSettings.xml", mockClient.requestedFiles[0])
+				assert.Equal(t, "http://myprojectsettings.com", mockClient.requestedUrls[1])
+				assert.Equal(t, "projectSettings.xml", mockClient.requestedFiles[1])
+			}
 		}
 	})
 }

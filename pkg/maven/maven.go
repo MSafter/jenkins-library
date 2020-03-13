@@ -89,29 +89,33 @@ func evaluateStdOut(config *ExecuteOptions) (*bytes.Buffer, io.Writer) {
 	return stdOutBuf, stdOut
 }
 
+func downloadSettingsIfURL(settingsFileOption, settingsFile string, client http.Downloader) (string, error) {
+	result := settingsFileOption
+	if strings.HasPrefix(settingsFileOption, "http:") || strings.HasPrefix(settingsFileOption, "https:") {
+		err := downloadSettingsFromURL(settingsFileOption, settingsFile, client)
+		if err != nil {
+			return "", err
+		}
+		result = settingsFile
+	}
+	return result, nil
+}
+
 func getParametersFromOptions(options *ExecuteOptions, client http.Downloader) ([]string, error) {
 	var parameters []string
 
 	if options.GlobalSettingsFile != "" {
-		globalSettingsFileName := options.GlobalSettingsFile
-		if strings.HasPrefix(options.GlobalSettingsFile, "http:") || strings.HasPrefix(options.GlobalSettingsFile, "https:") {
-			err := downloadSettingsFromURL(options.ProjectSettingsFile, "globalSettings.xml", client)
-			if err != nil {
-				return nil, err
-			}
-			globalSettingsFileName = "globalSettings.xml"
+		globalSettingsFileName, err := downloadSettingsIfURL(options.GlobalSettingsFile, "globalSettings.xml", client)
+		if err != nil {
+			return nil, err
 		}
 		parameters = append(parameters, "--global-settings", globalSettingsFileName)
 	}
 
 	if options.ProjectSettingsFile != "" {
-		projectSettingsFileName := options.ProjectSettingsFile
-		if strings.HasPrefix(options.ProjectSettingsFile, "http:") || strings.HasPrefix(options.ProjectSettingsFile, "https:") {
-			err := downloadSettingsFromURL(options.ProjectSettingsFile, "projectSettings.xml", client)
-			if err != nil {
-				return nil, err
-			}
-			projectSettingsFileName = "projectSettings.xml"
+		projectSettingsFileName, err := downloadSettingsIfURL(options.ProjectSettingsFile, "projectSettings.xml", client)
+		if err != nil {
+			return nil, err
 		}
 		parameters = append(parameters, "--settings", projectSettingsFileName)
 	}
